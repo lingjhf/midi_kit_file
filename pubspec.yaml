@@ -1,6 +1,6 @@
 name: midi_kit_file
 description: Pure Dart Standard MIDI File models, readers, writers, and timing utilities.
-version: 0.0.1
+version: 1.0.0
 publish_to: none
 
 environment:
