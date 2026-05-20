@@ -4,13 +4,17 @@ import 'dart:convert';
 import 'midi_channel_message.dart';
 import 'midi_smpte.dart';
 
+/// A MIDI event stored in a Standard MIDI File track.
 sealed class MidiEvent {
   const MidiEvent();
 }
 
+/// A channel voice event.
 class MidiChannelEvent extends MidiEvent {
+  /// Creates a channel voice event for [message].
   const MidiChannelEvent(this.message);
 
+  /// The channel voice message.
   final MidiChannelMessage message;
 
   @override
@@ -25,7 +29,12 @@ class MidiChannelEvent extends MidiEvent {
   String toString() => 'MidiChannelEvent($message)';
 }
 
+/// A Standard MIDI File meta event.
 class MidiMetaEvent extends MidiEvent {
+  /// Creates a meta event with raw [data].
+  ///
+  /// Standard fixed-length meta events are validated against their required
+  /// lengths.
   MidiMetaEvent({required this.type, required Iterable<int> data})
     : data = UnmodifiableListView<int>(_validatedBytes(data, 'meta data')) {
     if (type < 0 || type > 0x7f) {
@@ -34,6 +43,10 @@ class MidiMetaEvent extends MidiEvent {
     _validateMetaEventData(type, this.data);
   }
 
+  /// Parses meta event data from a Standard MIDI File track.
+  ///
+  /// Throws a [FormatException] when [type] and [data] do not form a valid
+  /// meta event.
   factory MidiMetaEvent.fromFileData({
     required int type,
     required Iterable<int> data,
@@ -45,10 +58,12 @@ class MidiMetaEvent extends MidiEvent {
     }
   }
 
+  /// Creates an end-of-track meta event.
   factory MidiMetaEvent.endOfTrack() {
     return MidiMetaEvent(type: endOfTrackType, data: const <int>[]);
   }
 
+  /// Creates a sequence number meta event.
   factory MidiMetaEvent.sequenceNumber(int sequenceNumber) {
     if (sequenceNumber < 0 || sequenceNumber > 0xffff) {
       throw RangeError.range(sequenceNumber, 0, 0xffff, 'sequenceNumber');
@@ -59,6 +74,9 @@ class MidiMetaEvent extends MidiEvent {
     );
   }
 
+  /// Creates a set-tempo meta event.
+  ///
+  /// The [microsecondsPerQuarter] value must be in `1..0xffffff`.
   factory MidiMetaEvent.setTempo(int microsecondsPerQuarter) {
     if (microsecondsPerQuarter <= 0 || microsecondsPerQuarter > 0xffffff) {
       throw RangeError.range(
@@ -78,6 +96,7 @@ class MidiMetaEvent extends MidiEvent {
     );
   }
 
+  /// Creates a time signature meta event.
   factory MidiMetaEvent.timeSignature({
     required int numerator,
     required int denominator,
@@ -99,6 +118,7 @@ class MidiMetaEvent extends MidiEvent {
     );
   }
 
+  /// Creates a key signature meta event.
   factory MidiMetaEvent.keySignature({
     required int sharpsFlats,
     required bool isMinor,
@@ -112,6 +132,7 @@ class MidiMetaEvent extends MidiEvent {
     );
   }
 
+  /// Creates a MIDI channel prefix meta event.
   factory MidiMetaEvent.midiChannelPrefix(int channel) {
     if (channel < 0 || channel > 0x0f) {
       throw RangeError.range(channel, 0, 0x0f, 'channel');
@@ -119,10 +140,12 @@ class MidiMetaEvent extends MidiEvent {
     return MidiMetaEvent(type: midiChannelPrefixType, data: <int>[channel]);
   }
 
+  /// Creates a MIDI port meta event.
   factory MidiMetaEvent.midiPort(int port) {
     return MidiMetaEvent(type: midiPortType, data: <int>[_byte(port, 'port')]);
   }
 
+  /// Creates a SMPTE offset meta event.
   factory MidiMetaEvent.smpteOffset({
     required MidiSmpteFrameRate frameRate,
     required int hours,
@@ -160,14 +183,17 @@ class MidiMetaEvent extends MidiEvent {
     );
   }
 
+  /// Creates a sequencer-specific meta event.
   factory MidiMetaEvent.sequencerSpecific(Iterable<int> data) {
     return MidiMetaEvent(type: sequencerSpecificType, data: data);
   }
 
+  /// Creates a track-name meta event.
   factory MidiMetaEvent.trackName(String name) {
     return MidiMetaEvent(type: trackNameType, data: utf8.encode(name));
   }
 
+  /// Creates a text meta event.
   factory MidiMetaEvent.text({
     required MidiTextMetaEventType type,
     required String text,
@@ -175,6 +201,9 @@ class MidiMetaEvent extends MidiEvent {
     return MidiMetaEvent(type: type.metaType, data: utf8.encode(text));
   }
 
+  /// Creates a text meta event by raw meta event type.
+  ///
+  /// The [type] must be in `0x01..0x0f`.
   factory MidiMetaEvent.textByType({required int type, required String text}) {
     if (!_isTextMetaType(type)) {
       throw RangeError.range(type, textType, textType + 0x0e, 'type');
@@ -182,30 +211,70 @@ class MidiMetaEvent extends MidiEvent {
     return MidiMetaEvent(type: type, data: utf8.encode(text));
   }
 
+  /// The sequence number meta event type.
   static const int sequenceNumberType = 0x00;
+
+  /// The text meta event type.
   static const int textType = 0x01;
+
+  /// The copyright notice meta event type.
   static const int copyrightType = 0x02;
+
+  /// The track-name meta event type.
   static const int trackNameType = 0x03;
+
+  /// The instrument-name meta event type.
   static const int instrumentNameType = 0x04;
+
+  /// The lyric meta event type.
   static const int lyricType = 0x05;
+
+  /// The marker meta event type.
   static const int markerType = 0x06;
+
+  /// The cue-point meta event type.
   static const int cuePointType = 0x07;
+
+  /// The program-name meta event type.
   static const int programNameType = 0x08;
+
+  /// The device-name meta event type.
   static const int deviceNameType = 0x09;
+
+  /// The MIDI channel prefix meta event type.
   static const int midiChannelPrefixType = 0x20;
+
+  /// The MIDI port meta event type.
   static const int midiPortType = 0x21;
+
+  /// The end-of-track meta event type.
   static const int endOfTrackType = 0x2f;
+
+  /// The set-tempo meta event type.
   static const int setTempoType = 0x51;
+
+  /// The SMPTE offset meta event type.
   static const int smpteOffsetType = 0x54;
+
+  /// The time signature meta event type.
   static const int timeSignatureType = 0x58;
+
+  /// The key signature meta event type.
   static const int keySignatureType = 0x59;
+
+  /// The sequencer-specific meta event type.
   static const int sequencerSpecificType = 0x7f;
 
+  /// The meta event type byte.
   final int type;
+
+  /// The raw meta event data.
   final UnmodifiableListView<int> data;
 
+  /// Whether this meta event is an end-of-track event.
   bool get isEndOfTrack => type == endOfTrackType;
 
+  /// The sequence number, when this is a sequence number meta event.
   int? get sequenceNumber {
     if (type != sequenceNumberType) {
       return null;
@@ -213,6 +282,7 @@ class MidiMetaEvent extends MidiEvent {
     return (data[0] << 8) | data[1];
   }
 
+  /// The tempo in microseconds per quarter note, when this is a tempo event.
   int? get microsecondsPerQuarter {
     if (type != setTempoType) {
       return null;
@@ -220,14 +290,17 @@ class MidiMetaEvent extends MidiEvent {
     return (data[0] << 16) | (data[1] << 8) | data[2];
   }
 
+  /// The channel prefix, when this is a MIDI channel prefix meta event.
   int? get midiChannelPrefix {
     return type == midiChannelPrefixType ? data[0] : null;
   }
 
+  /// The MIDI port, when this is a MIDI port meta event.
   int? get midiPort {
     return type == midiPortType ? data[0] : null;
   }
 
+  /// The SMPTE offset, when this is a SMPTE offset meta event.
   MidiSmpteOffset? get smpteOffset {
     if (type != smpteOffsetType) {
       return null;
@@ -243,6 +316,7 @@ class MidiMetaEvent extends MidiEvent {
     );
   }
 
+  /// The time signature, when this is a time signature meta event.
   ({
     int numerator,
     int denominatorPower,
@@ -263,6 +337,7 @@ class MidiMetaEvent extends MidiEvent {
     );
   }
 
+  /// The key signature, when this is a key signature meta event.
   ({int sharpsFlats, bool isMinor})? get keySignature {
     if (type != keySignatureType) {
       return null;
@@ -270,10 +345,12 @@ class MidiMetaEvent extends MidiEvent {
     return (sharpsFlats: _signedByte(data[0]), isMinor: data[1] == 1);
   }
 
+  /// The raw data, when this is a sequencer-specific meta event.
   UnmodifiableListView<int>? get sequencerSpecific {
     return type == sequencerSpecificType ? data : null;
   }
 
+  /// The decoded text, when this is a text meta event.
   String? get text {
     if (!_isTextMetaType(type)) {
       return null;
@@ -281,6 +358,7 @@ class MidiMetaEvent extends MidiEvent {
     return utf8.decode(data, allowMalformed: true);
   }
 
+  /// The track name, when this is a track-name meta event.
   String? get trackName {
     return type == trackNameType ? text : null;
   }
@@ -302,23 +380,44 @@ class MidiMetaEvent extends MidiEvent {
   }
 }
 
+/// A Standard MIDI File text meta event kind.
 enum MidiTextMetaEventType {
+  /// A generic text event.
   text(MidiMetaEvent.textType),
+
+  /// A copyright notice event.
   copyright(MidiMetaEvent.copyrightType),
+
+  /// A track-name event.
   trackName(MidiMetaEvent.trackNameType),
+
+  /// An instrument-name event.
   instrumentName(MidiMetaEvent.instrumentNameType),
+
+  /// A lyric event.
   lyric(MidiMetaEvent.lyricType),
+
+  /// A marker event.
   marker(MidiMetaEvent.markerType),
+
+  /// A cue-point event.
   cuePoint(MidiMetaEvent.cuePointType),
+
+  /// A program-name event.
   programName(MidiMetaEvent.programNameType),
+
+  /// A device-name event.
   deviceName(MidiMetaEvent.deviceNameType);
 
   const MidiTextMetaEventType(this.metaType);
 
+  /// The raw meta event type byte.
   final int metaType;
 }
 
+/// A SMPTE offset encoded by a meta event.
 class MidiSmpteOffset {
+  /// Creates a SMPTE offset.
   const MidiSmpteOffset({
     required this.frameRate,
     required this.hours,
@@ -328,11 +427,22 @@ class MidiSmpteOffset {
     required this.fractionalFrames,
   });
 
+  /// The SMPTE frame rate.
   final MidiSmpteFrameRate frameRate;
+
+  /// The hour component.
   final int hours;
+
+  /// The minute component.
   final int minutes;
+
+  /// The second component.
   final int seconds;
+
+  /// The frame component.
   final int frames;
+
+  /// The fractional-frame component.
   final int fractionalFrames;
 
   @override
@@ -359,7 +469,11 @@ class MidiSmpteOffset {
   }
 }
 
+/// A Standard MIDI File SysEx or escape event.
 class MidiSysExEvent extends MidiEvent {
+  /// Creates a SysEx event.
+  ///
+  /// The [status] must be `0xf0` or `0xf7`.
   MidiSysExEvent({required this.status, required Iterable<int> data})
     : data = UnmodifiableListView<int>(_validatedBytes(data, 'SysEx data')) {
     if (status != 0xf0 && status != 0xf7) {
@@ -371,7 +485,10 @@ class MidiSysExEvent extends MidiEvent {
     }
   }
 
+  /// The SysEx status byte.
   final int status;
+
+  /// The raw SysEx event data.
   final UnmodifiableListView<int> data;
 
   @override

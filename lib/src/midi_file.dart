@@ -6,15 +6,23 @@ import 'midi_channel_message.dart';
 import 'midi_event.dart';
 import 'midi_smpte.dart';
 
+/// A Standard MIDI File format.
 enum MidiFileFormat {
+  /// Format 0, containing a single multi-channel track.
   singleTrack(0),
+
+  /// Format 1, containing simultaneous tracks.
   simultaneousTracks(1),
+
+  /// Format 2, containing independent sequences.
   independentSequences(2);
 
   const MidiFileFormat(this.value);
 
+  /// The numeric format value stored in the file header.
   final int value;
 
+  /// Returns the file format for a numeric header value.
   static MidiFileFormat fromValue(int value) {
     for (final format in MidiFileFormat.values) {
       if (format.value == value) {
@@ -25,17 +33,23 @@ enum MidiFileFormat {
   }
 }
 
+/// A Standard MIDI File time division.
 sealed class MidiTimeDivision {
   const MidiTimeDivision();
 }
 
+/// A metrical time division expressed as ticks per quarter note.
 class MidiTicksPerQuarter extends MidiTimeDivision {
+  /// Creates a PPQ time division.
+  ///
+  /// The [ticksPerQuarter] value must be in `1..0x7fff`.
   MidiTicksPerQuarter(this.ticksPerQuarter) {
     if (ticksPerQuarter <= 0 || ticksPerQuarter > 0x7fff) {
       throw RangeError.range(ticksPerQuarter, 1, 0x7fff, 'ticksPerQuarter');
     }
   }
 
+  /// The number of ticks in one quarter note.
   final int ticksPerQuarter;
 
   @override
@@ -51,7 +65,11 @@ class MidiTicksPerQuarter extends MidiTimeDivision {
   String toString() => 'MidiTicksPerQuarter($ticksPerQuarter)';
 }
 
+/// A SMPTE time-code time division.
 class MidiSmpteTimeDivision extends MidiTimeDivision {
+  /// Creates a SMPTE time division.
+  ///
+  /// The [ticksPerFrame] value must be in `1..255`.
   MidiSmpteTimeDivision({
     required this.frameRate,
     required this.ticksPerFrame,
@@ -61,9 +79,13 @@ class MidiSmpteTimeDivision extends MidiTimeDivision {
     }
   }
 
+  /// The SMPTE frame rate.
   final MidiSmpteFrameRate frameRate;
+
+  /// The number of ticks in one SMPTE frame.
   final int ticksPerFrame;
 
+  /// The nominal frame rate in frames per second.
   int get framesPerSecond => frameRate.nominalFramesPerSecond;
 
   @override
@@ -83,7 +105,12 @@ class MidiSmpteTimeDivision extends MidiTimeDivision {
   }
 }
 
+/// A Standard MIDI File model.
 class MidiFile {
+  /// Creates a Standard MIDI File from tracks.
+  ///
+  /// Unknown chunks are written after the track chunks. Use
+  /// [MidiFile.withChunks] when unknown chunk order must be controlled.
   factory MidiFile({
     required MidiFileFormat format,
     required MidiTimeDivision timeDivision,
@@ -100,6 +127,7 @@ class MidiFile {
     );
   }
 
+  /// Creates a Standard MIDI File from ordered chunks.
   MidiFile.withChunks({
     required this.format,
     required this.timeDivision,
@@ -129,16 +157,29 @@ class MidiFile {
     }
   }
 
+  /// Parses Standard MIDI File bytes.
+  ///
+  /// Throws a [FormatException] when [bytes] is not valid SMF data.
   factory MidiFile.fromBytes(Uint8List bytes) {
     return _StandardMidiFileReader(bytes).read();
   }
 
+  /// The file format.
   final MidiFileFormat format;
+
+  /// The time division used by delta-times in the file.
   final MidiTimeDivision timeDivision;
+
+  /// The ordered file chunks after the header chunk.
   final UnmodifiableListView<MidiFileChunk> chunks;
+
+  /// The track chunks as [MidiTrack] models.
   final UnmodifiableListView<MidiTrack> tracks;
+
+  /// The unknown chunks found in [chunks].
   final UnmodifiableListView<MidiUnknownChunk> unknownChunks;
 
+  /// Encodes this model as Standard MIDI File bytes.
   Uint8List toBytes() {
     return _StandardMidiFileWriter(this).write();
   }
@@ -157,13 +198,17 @@ class MidiFile {
   }
 }
 
+/// A chunk in a Standard MIDI File after the header chunk.
 sealed class MidiFileChunk {
   const MidiFileChunk();
 }
 
+/// A track chunk in a Standard MIDI File.
 class MidiTrackChunk extends MidiFileChunk {
+  /// Creates a track chunk containing [track].
   const MidiTrackChunk(this.track);
 
+  /// The track data.
   final MidiTrack track;
 
   @override
@@ -175,7 +220,11 @@ class MidiTrackChunk extends MidiFileChunk {
   int get hashCode => track.hashCode;
 }
 
+/// A Standard MIDI File track.
 class MidiTrack {
+  /// Creates a track from absolute-tick events.
+  ///
+  /// A track may contain zero or one explicit end-of-track meta event.
   MidiTrack({required List<MidiTrackEvent> events, this.name})
     : events = UnmodifiableListView<MidiTrackEvent>(
         List<MidiTrackEvent>.of(events),
@@ -201,9 +250,13 @@ class MidiTrack {
     }
   }
 
+  /// The events in this track.
   final UnmodifiableListView<MidiTrackEvent> events;
+
+  /// The fallback track name used when no track-name meta event exists.
   final String? name;
 
+  /// The first track-name meta event text, or [name] if none exists.
   String? get effectiveName {
     for (final event in events) {
       final midiEvent = event.event;
@@ -225,14 +278,19 @@ class MidiTrack {
   int get hashCode => Object.hash(name, Object.hashAll(events));
 }
 
+/// An event at an absolute MIDI tick within a track.
 class MidiTrackEvent {
+  /// Creates a track event.
   MidiTrackEvent({required this.tick, required this.event}) {
     if (tick < 0) {
       throw RangeError.range(tick, 0, null, 'tick');
     }
   }
 
+  /// The absolute tick of the event.
   final int tick;
+
+  /// The MIDI event payload.
   final MidiEvent event;
 
   @override
@@ -249,13 +307,21 @@ class MidiTrackEvent {
   String toString() => 'MidiTrackEvent(tick: $tick, event: $event)';
 }
 
+/// An unknown non-track, non-header chunk.
 class MidiUnknownChunk extends MidiFileChunk {
+  /// Creates an unknown chunk.
+  ///
+  /// The [type] must be a printable four-character chunk type other than
+  /// `MThd` or `MTrk`.
   MidiUnknownChunk({required this.type, required Iterable<int> data})
     : data = UnmodifiableListView<int>(_validatedBytes(data, 'chunk data')) {
     _validateChunkType(type);
   }
 
+  /// The four-character chunk type.
   final String type;
+
+  /// The raw chunk payload.
   final UnmodifiableListView<int> data;
 
   @override

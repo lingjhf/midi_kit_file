@@ -1,19 +1,40 @@
+/// A Standard MIDI channel voice message kind.
 enum MidiChannelMessageType {
+  /// A note-off message.
   noteOff(0x80, 2),
+
+  /// A note-on message.
   noteOn(0x90, 2),
+
+  /// A polyphonic key pressure message.
   polyphonicKeyPressure(0xa0, 2),
+
+  /// A control change message.
   controlChange(0xb0, 2),
+
+  /// A program change message.
   programChange(0xc0, 1),
+
+  /// A channel pressure message.
   channelPressure(0xd0, 1),
+
+  /// A pitch bend change message.
   pitchBend(0xe0, 2);
 
   const MidiChannelMessageType(this.statusClass, this.dataLength);
 
+  /// The high nibble used by this message type's status byte.
   final int statusClass;
+
+  /// The number of data bytes carried by this message type.
   final int dataLength;
 }
 
+/// A Standard MIDI channel voice message.
 class MidiChannelMessage {
+  /// Creates a channel voice message.
+  ///
+  /// The [channel] must be in `0..15` and data bytes must be in `0..127`.
   MidiChannelMessage({
     required this.type,
     required this.channel,
@@ -39,6 +60,7 @@ class MidiChannelMessage {
     }
   }
 
+  /// Creates a note-off message.
   factory MidiChannelMessage.noteOff({
     required int channel,
     required int note,
@@ -52,6 +74,7 @@ class MidiChannelMessage {
     );
   }
 
+  /// Creates a note-on message.
   factory MidiChannelMessage.noteOn({
     required int channel,
     required int note,
@@ -65,6 +88,7 @@ class MidiChannelMessage {
     );
   }
 
+  /// Creates a polyphonic key pressure message.
   factory MidiChannelMessage.polyphonicKeyPressure({
     required int channel,
     required int note,
@@ -78,6 +102,7 @@ class MidiChannelMessage {
     );
   }
 
+  /// Creates a control change message.
   factory MidiChannelMessage.controlChange({
     required int channel,
     required int controller,
@@ -91,6 +116,7 @@ class MidiChannelMessage {
     );
   }
 
+  /// Creates a program change message.
   factory MidiChannelMessage.programChange({
     required int channel,
     required int program,
@@ -102,6 +128,7 @@ class MidiChannelMessage {
     );
   }
 
+  /// Creates a channel pressure message.
   factory MidiChannelMessage.channelPressure({
     required int channel,
     required int pressure,
@@ -113,6 +140,9 @@ class MidiChannelMessage {
     );
   }
 
+  /// Creates a pitch bend message.
+  ///
+  /// The [value] must be the 14-bit MIDI pitch bend value in `0..0x3fff`.
   factory MidiChannelMessage.pitchBend({
     required int channel,
     required int value,
@@ -128,6 +158,10 @@ class MidiChannelMessage {
     );
   }
 
+  /// Parses a complete MIDI channel voice message.
+  ///
+  /// Throws a [FormatException] if [bytes] does not contain exactly one
+  /// channel voice message.
   factory MidiChannelMessage.fromBytes(List<int> bytes) {
     if (bytes.isEmpty) {
       throw const FormatException('MIDI channel message bytes are empty.');
@@ -156,11 +190,19 @@ class MidiChannelMessage {
     );
   }
 
+  /// The message type.
   final MidiChannelMessageType type;
+
+  /// The zero-based MIDI channel number.
   final int channel;
+
+  /// The first MIDI data byte.
   final int data1;
+
+  /// The second MIDI data byte, when the message type has one.
   final int? data2;
 
+  /// The note number for note and polyphonic key pressure messages.
   int? get note {
     return switch (type) {
       MidiChannelMessageType.noteOff ||
@@ -170,6 +212,7 @@ class MidiChannelMessage {
     };
   }
 
+  /// The velocity for note-on and note-off messages.
   int? get velocity {
     return switch (type) {
       MidiChannelMessageType.noteOff || MidiChannelMessageType.noteOn => data2,
@@ -177,14 +220,17 @@ class MidiChannelMessage {
     };
   }
 
+  /// The controller number for control change messages.
   int? get controller {
     return type == MidiChannelMessageType.controlChange ? data1 : null;
   }
 
+  /// The program number for program change messages.
   int? get program {
     return type == MidiChannelMessageType.programChange ? data1 : null;
   }
 
+  /// The 14-bit value for pitch bend messages.
   int? get pitchBendValue {
     if (type != MidiChannelMessageType.pitchBend) {
       return null;
@@ -192,11 +238,13 @@ class MidiChannelMessage {
     return data1 | (data2! << 7);
   }
 
+  /// Encodes this message to status and data bytes.
   List<int> toBytes() {
     final status = type.statusClass | channel;
     return <int>[status, data1, ?data2];
   }
 
+  /// Returns the channel message type for [status].
   static MidiChannelMessageType typeForStatus(int status) {
     final statusClass = status & 0xf0;
     for (final type in MidiChannelMessageType.values) {

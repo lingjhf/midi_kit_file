@@ -2,10 +2,18 @@ import 'midi_event.dart';
 import 'midi_file.dart';
 import 'midi_smpte.dart';
 
+/// A tempo map for converting MIDI ticks to wall-clock durations.
 class MidiTempoMap {
+  /// Creates a tempo map from tempo changes.
+  ///
+  /// Later changes at the same tick replace earlier changes at that tick.
   MidiTempoMap(Iterable<MidiTempoChange> changes)
     : changes = _normalizedChanges(changes);
 
+  /// Builds a tempo map from a Standard MIDI File.
+  ///
+  /// Format 0 and format 1 files use the first track for tempo changes. Throws
+  /// an [ArgumentError] for format 2 files because each track is independent.
   factory MidiTempoMap.fromFile(MidiFile file) {
     if (file.format == MidiFileFormat.independentSequences) {
       throw ArgumentError.value(
@@ -18,6 +26,7 @@ class MidiTempoMap {
     return MidiTempoMap.fromTrack(file.tracks.first);
   }
 
+  /// Builds a tempo map from one MIDI track.
   factory MidiTempoMap.fromTrack(MidiTrack track) {
     final changes = <MidiTempoChange>[];
     for (final event in track.events) {
@@ -35,10 +44,13 @@ class MidiTempoMap {
     return MidiTempoMap(changes);
   }
 
+  /// The default MIDI tempo of 120 BPM.
   static const int defaultMicrosecondsPerQuarter = 500000;
 
+  /// The normalized tempo changes sorted by absolute tick.
   final List<MidiTempoChange> changes;
 
+  /// Converts an absolute [tick] to a [Duration].
   Duration tickToDuration(int tick, MidiTimeDivision timeDivision) {
     if (tick < 0) {
       throw RangeError.range(tick, 0, null, 'tick');
@@ -87,7 +99,11 @@ class MidiTempoMap {
   }
 }
 
+/// A tempo change at an absolute MIDI tick.
 class MidiTempoChange {
+  /// Creates a tempo change.
+  ///
+  /// The [microsecondsPerQuarter] value must be positive.
   MidiTempoChange({required this.tick, required this.microsecondsPerQuarter}) {
     if (tick < 0) {
       throw RangeError.range(tick, 0, null, 'tick');
@@ -102,7 +118,10 @@ class MidiTempoChange {
     }
   }
 
+  /// The absolute tick where the tempo takes effect.
   final int tick;
+
+  /// The number of microseconds per quarter note.
   final int microsecondsPerQuarter;
 
   @override

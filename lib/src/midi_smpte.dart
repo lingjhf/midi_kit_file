@@ -1,4 +1,6 @@
+/// A Standard MIDI File SMPTE frame rate.
 enum MidiSmpteFrameRate {
+  /// 24 frames per second.
   fps24(
     signedDivisionByte: -24,
     smpteOffsetCode: 0,
@@ -6,6 +8,8 @@ enum MidiSmpteFrameRate {
     actualFramesPerSecondNumerator: 24,
     actualFramesPerSecondDenominator: 1,
   ),
+
+  /// 25 frames per second.
   fps25(
     signedDivisionByte: -25,
     smpteOffsetCode: 1,
@@ -13,6 +17,8 @@ enum MidiSmpteFrameRate {
     actualFramesPerSecondNumerator: 25,
     actualFramesPerSecondDenominator: 1,
   ),
+
+  /// 29.97 drop-frame time code.
   fps29DropFrame(
     signedDivisionByte: -29,
     smpteOffsetCode: 2,
@@ -20,6 +26,8 @@ enum MidiSmpteFrameRate {
     actualFramesPerSecondNumerator: 30000,
     actualFramesPerSecondDenominator: 1001,
   ),
+
+  /// 30 frames per second.
   fps30(
     signedDivisionByte: -30,
     smpteOffsetCode: 3,
@@ -36,12 +44,22 @@ enum MidiSmpteFrameRate {
     required this.actualFramesPerSecondDenominator,
   });
 
+  /// The signed byte stored in a Standard MIDI File time division.
   final int signedDivisionByte;
+
+  /// The two-bit frame-rate code used by SMPTE offset meta events.
   final int smpteOffsetCode;
+
+  /// The nominal whole-number frame rate.
   final int nominalFramesPerSecond;
+
+  /// The numerator of the actual frame rate.
   final int actualFramesPerSecondNumerator;
+
+  /// The denominator of the actual frame rate.
   final int actualFramesPerSecondDenominator;
 
+  /// Returns the frame rate encoded by [signedDivisionByte].
   static MidiSmpteFrameRate fromSignedDivisionByte(int signedDivisionByte) {
     for (final frameRate in MidiSmpteFrameRate.values) {
       if (frameRate.signedDivisionByte == signedDivisionByte) {
@@ -53,6 +71,7 @@ enum MidiSmpteFrameRate {
     );
   }
 
+  /// Returns the frame rate encoded by a SMPTE offset frame-rate code.
   static MidiSmpteFrameRate fromSmpteOffsetCode(int smpteOffsetCode) {
     for (final frameRate in MidiSmpteFrameRate.values) {
       if (frameRate.smpteOffsetCode == smpteOffsetCode) {

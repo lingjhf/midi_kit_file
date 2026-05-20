@@ -1,1 +1,7 @@
 include: package:lints/recommended.yaml
+
+linter:
+  rules:
+    comment_references: true
+    public_member_api_docs: true
+    slash_for_doc_comments: true
