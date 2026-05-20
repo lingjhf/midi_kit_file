@@ -275,6 +275,14 @@ class _StandardMidiFileReader {
   final _ByteReader _reader;
 
   MidiFile read() {
+    try {
+      return _read();
+    } on ArgumentError catch (error) {
+      throw FormatException(error.toString());
+    }
+  }
+
+  MidiFile _read() {
     final headerType = _reader.readAscii(4);
     if (headerType != 'MThd') {
       throw const FormatException('Standard MIDI File must start with MThd.');
@@ -672,6 +680,13 @@ class _ByteWriter {
 void _validateChunkType(String type) {
   if (type.length != 4) {
     throw ArgumentError.value(type, 'type', 'Chunk type must be 4 characters.');
+  }
+  if (type == 'MThd' || type == 'MTrk') {
+    throw ArgumentError.value(
+      type,
+      'type',
+      'Unknown chunks must not use Standard MIDI File chunk types.',
+    );
   }
   for (final codeUnit in type.codeUnits) {
     if (codeUnit < 0x20 || codeUnit > 0x7e) {

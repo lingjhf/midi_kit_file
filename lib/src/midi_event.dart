@@ -28,8 +28,8 @@ class MidiChannelEvent extends MidiEvent {
 class MidiMetaEvent extends MidiEvent {
   MidiMetaEvent({required this.type, required Iterable<int> data})
     : data = UnmodifiableListView<int>(_validatedBytes(data, 'meta data')) {
-    if (type < 0 || type > 0xff) {
-      throw RangeError.range(type, 0, 0xff, 'type');
+    if (type < 0 || type > 0x7f) {
+      throw RangeError.range(type, 0, 0x7f, 'type');
     }
     _validateMetaEventData(type, this.data);
   }

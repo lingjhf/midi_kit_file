@@ -239,6 +239,31 @@ void main() {
       expect(
         () => MidiFile.fromBytes(
           _smfChunks(
+            format: 0,
+            trackCount: 2,
+            chunks: const <_Chunk>[
+              _Chunk('MTrk', <int>[0x00, 0xff, 0x2f, 0x00]),
+              _Chunk('MTrk', <int>[0x00, 0xff, 0x2f, 0x00]),
+            ],
+          ),
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => MidiFile.fromBytes(
+          _smfChunks(
+            trackCount: 1,
+            chunks: const <_Chunk>[
+              _Chunk('MThd', <int>[0x00]),
+              _Chunk('MTrk', <int>[0x00, 0xff, 0x2f, 0x00]),
+            ],
+          ),
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => MidiFile.fromBytes(
+          _smfChunks(
             headerLength: 5,
             trackCount: 1,
             chunks: const <_Chunk>[
@@ -251,9 +276,30 @@ void main() {
       expect(
         () => MidiFile.fromBytes(
           _smf(
+            division: 0,
+            tracks: <List<int>>[
+              <int>[0x00, 0xff, 0x2f, 0x00],
+            ],
+          ),
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => MidiFile.fromBytes(
+          _smf(
             division: 0x8001,
             tracks: <List<int>>[
               <int>[0x00, 0xff, 0x2f, 0x00],
+            ],
+          ),
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => MidiFile.fromBytes(
+          _smf(
+            tracks: <List<int>>[
+              <int>[0x00, 0xff, 0x80, 0x00],
             ],
           ),
         ),
@@ -732,6 +778,10 @@ void main() {
         () => MidiMetaEvent(type: -1, data: const <int>[]),
         throwsRangeError,
       );
+      expect(
+        () => MidiMetaEvent(type: 0x80, data: const <int>[]),
+        throwsRangeError,
+      );
       expect(() => MidiMetaEvent.sequenceNumber(0x10000), throwsRangeError);
       expect(() => MidiMetaEvent.setTempo(0), throwsRangeError);
       expect(
@@ -1006,6 +1056,14 @@ void main() {
       );
       expect(
         () => MidiUnknownChunk(type: 'Bad\n', data: const <int>[]),
+        throwsArgumentError,
+      );
+      expect(
+        () => MidiUnknownChunk(type: 'MThd', data: const <int>[]),
+        throwsArgumentError,
+      );
+      expect(
+        () => MidiUnknownChunk(type: 'MTrk', data: const <int>[]),
         throwsArgumentError,
       );
       expect(
