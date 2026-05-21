@@ -229,19 +229,7 @@ class MidiTrack {
     : events = UnmodifiableListView<MidiTrackEvent>(
         List<MidiTrackEvent>.of(events),
       ) {
-    if (this.events.any(
-          (event) =>
-              event.event is MidiMetaEvent &&
-              (event.event as MidiMetaEvent).isEndOfTrack,
-        ) &&
-        this.events
-                .where(
-                  (event) =>
-                      event.event is MidiMetaEvent &&
-                      (event.event as MidiMetaEvent).isEndOfTrack,
-                )
-                .length >
-            1) {
+    if (this.events.where(_isEndOfTrackEvent).length > 1) {
       throw ArgumentError.value(
         events,
         'events',
@@ -260,8 +248,9 @@ class MidiTrack {
   String? get effectiveName {
     for (final event in events) {
       final midiEvent = event.event;
-      if (midiEvent is MidiMetaEvent && midiEvent.trackName != null) {
-        return midiEvent.trackName;
+      final trackName = midiEvent is MidiMetaEvent ? midiEvent.trackName : null;
+      if (trackName != null) {
+        return trackName;
       }
     }
     return name;
@@ -467,9 +456,7 @@ class _StandardMidiFileReader {
           type: type,
           data: metaData,
         );
-        if (metaEvent.trackName != null && trackName == null) {
-          trackName = metaEvent.trackName;
-        }
+        trackName ??= metaEvent.trackName;
         if (metaEvent.isEndOfTrack) {
           sawEndOfTrack = true;
         }
@@ -567,16 +554,13 @@ class _StandardMidiFileWriter {
   }
 
   List<MidiTrackEvent> _orderedTrackEvents(MidiTrack track) {
+    final trackName = track.name;
     final events = <MidiTrackEvent>[
-      if (track.name != null && !_hasTrackNameEvent(track))
-        MidiTrackEvent(tick: 0, event: MidiMetaEvent.trackName(track.name!)),
+      if (trackName != null && !_hasTrackNameEvent(track))
+        MidiTrackEvent(tick: 0, event: MidiMetaEvent.trackName(trackName)),
       ...track.events,
     ];
-    final hasEndOfTrack = events.any(
-      (event) =>
-          event.event is MidiMetaEvent &&
-          (event.event as MidiMetaEvent).isEndOfTrack,
-    );
+    final hasEndOfTrack = events.any(_isEndOfTrackEvent);
     if (!hasEndOfTrack) {
       final lastTick = events.fold<int>(
         0,
@@ -602,11 +586,7 @@ class _StandardMidiFileWriter {
   }
 
   bool _hasTrackNameEvent(MidiTrack track) {
-    return track.events.any(
-      (event) =>
-          event.event is MidiMetaEvent &&
-          (event.event as MidiMetaEvent).type == MidiMetaEvent.trackNameType,
-    );
+    return track.events.any(_isTrackNameEvent);
   }
 
   void _writeEvent(_ByteWriter writer, MidiEvent event) {
@@ -624,6 +604,17 @@ class _StandardMidiFileWriter {
         writer.writeBytes(data);
     }
   }
+}
+
+bool _isEndOfTrackEvent(MidiTrackEvent event) {
+  final midiEvent = event.event;
+  return midiEvent is MidiMetaEvent && midiEvent.isEndOfTrack;
+}
+
+bool _isTrackNameEvent(MidiTrackEvent event) {
+  final midiEvent = event.event;
+  return midiEvent is MidiMetaEvent &&
+      midiEvent.type == MidiMetaEvent.trackNameType;
 }
 
 class _ByteReader {

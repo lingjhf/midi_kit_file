@@ -31,12 +31,14 @@ class MidiTempoMap {
     final changes = <MidiTempoChange>[];
     for (final event in track.events) {
       final midiEvent = event.event;
-      if (midiEvent is MidiMetaEvent &&
-          midiEvent.microsecondsPerQuarter != null) {
+      final microsecondsPerQuarter = midiEvent is MidiMetaEvent
+          ? midiEvent.microsecondsPerQuarter
+          : null;
+      if (microsecondsPerQuarter != null) {
         changes.add(
           MidiTempoChange(
             tick: event.tick,
-            microsecondsPerQuarter: midiEvent.microsecondsPerQuarter!,
+            microsecondsPerQuarter: microsecondsPerQuarter,
           ),
         );
       }

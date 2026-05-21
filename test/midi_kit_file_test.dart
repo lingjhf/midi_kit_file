@@ -745,13 +745,13 @@ void main() {
       expect(prefix.midiChannelPrefix, 9);
       expect(prefix.midiPort, isNull);
       expect(port.midiPort, 200);
-      expect(time.timeSignature!.numerator, 7);
-      expect(time.timeSignature!.denominatorPower, 3);
-      expect(time.timeSignature!.denominator, BigInt.from(8));
-      expect(time.timeSignature!.clocksPerMetronomeClick, 36);
-      expect(time.timeSignature!.thirtySecondNotesPerQuarter, 12);
-      expect(key.keySignature!.sharpsFlats, -3);
-      expect(key.keySignature!.isMinor, isTrue);
+      expect(time.timeSignature?.numerator, 7);
+      expect(time.timeSignature?.denominatorPower, 3);
+      expect(time.timeSignature?.denominator, BigInt.from(8));
+      expect(time.timeSignature?.clocksPerMetronomeClick, 36);
+      expect(time.timeSignature?.thirtySecondNotesPerQuarter, 12);
+      expect(key.keySignature?.sharpsFlats, -3);
+      expect(key.keySignature?.isMinor, isTrue);
       expect(
         offset.smpteOffset,
         const MidiSmpteOffset(

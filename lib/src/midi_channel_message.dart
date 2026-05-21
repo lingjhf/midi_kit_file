@@ -235,7 +235,8 @@ class MidiChannelMessage {
     if (type != MidiChannelMessageType.pitchBend) {
       return null;
     }
-    return data1 | (data2! << 7);
+    final second = data2;
+    return second == null ? null : data1 | (second << 7);
   }
 
   /// Encodes this message to status and data bytes.
